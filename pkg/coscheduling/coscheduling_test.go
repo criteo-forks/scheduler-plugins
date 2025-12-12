@@ -30,7 +30,6 @@ import (
 	"k8s.io/client-go/informers"
 	clientsetfake "k8s.io/client-go/kubernetes/fake"
 	clicache "k8s.io/client-go/tools/cache"
-	fwk "k8s.io/kube-scheduler/framework"
 	"k8s.io/kubernetes/pkg/scheduler/framework"
 	"k8s.io/kubernetes/pkg/scheduler/framework/plugins/defaultbinder"
 	"k8s.io/kubernetes/pkg/scheduler/framework/plugins/queuesort"
@@ -59,7 +58,7 @@ func TestPodGroupBackoffTime(t *testing.T) {
 		pods              []*v1.Pod
 		pgs               []*v1alpha1.PodGroup
 		wantActivatedPods []string
-		want              fwk.Code
+		want              framework.Code
 	}{
 		{
 			name: "prevent pod falling into infinite scheduling loop",
@@ -72,7 +71,7 @@ func TestPodGroupBackoffTime(t *testing.T) {
 				tu.MakePodGroup().Name("pg1").Namespace("ns").MinMember(3).Obj(),
 			},
 			wantActivatedPods: []string{"ns/pod2", "ns/pod3"},
-			want:              fwk.UnschedulableAndUnresolvable,
+			want:              framework.UnschedulableAndUnresolvable,
 		},
 	}
 
@@ -139,8 +138,8 @@ func TestPodGroupBackoffTime(t *testing.T) {
 			state := framework.NewCycleState()
 			state.Write(framework.PodsToActivateKey, framework.NewPodsToActivate())
 			code, _ := pl.Permit(ctx, state, tt.pods[0], "test")
-			if code.Code() != fwk.Wait {
-				t.Errorf("expected %v, got %v", fwk.Wait, code.Code())
+			if code.Code() != framework.Wait {
+				t.Errorf("expected %v, got %v", framework.Wait, code.Code())
 				return
 			}
 
@@ -166,7 +165,7 @@ func TestPodGroupBackoffTime(t *testing.T) {
 
 			pl.PostFilter(ctx, framework.NewCycleState(), tt.pods[1], nil)
 
-			_, code = pl.PreFilter(ctx, framework.NewCycleState(), tt.pods[2], nil)
+			_, code = pl.PreFilter(ctx, framework.NewCycleState(), tt.pods[2])
 			if code.Code() != tt.want {
 				t.Errorf("expected %v, got %v", tt.want, code.Code())
 				return
@@ -449,7 +448,7 @@ func TestPermit(t *testing.T) {
 		name string
 		pod  *v1.Pod
 		pgs  []*v1alpha1.PodGroup
-		want fwk.Code
+		want framework.Code
 	}{
 		{
 			name: "pods do not belong to any podGroup",
@@ -458,7 +457,7 @@ func TestPermit(t *testing.T) {
 				tu.MakePodGroup().Name("pg1").Namespace("ns").MinMember(1).Obj(),
 				tu.MakePodGroup().Name("pg2").Namespace("ns").MinMember(2).Obj(),
 			},
-			want: fwk.Success,
+			want: framework.Success,
 		},
 		{
 			name: "pods belong to a pg1, but quorum not satisfied",
@@ -467,7 +466,7 @@ func TestPermit(t *testing.T) {
 				tu.MakePodGroup().Name("pg1").Namespace("ns").MinMember(1).Obj(),
 				tu.MakePodGroup().Name("pg2").Namespace("ns").MinMember(2).Obj(),
 			},
-			want: fwk.Wait,
+			want: framework.Wait,
 		},
 		{
 			name: "pods belong to a podGroup, and quorum satisfied",
@@ -476,7 +475,7 @@ func TestPermit(t *testing.T) {
 				tu.MakePodGroup().Name("pg1").Namespace("ns").MinMember(1).Obj(),
 				tu.MakePodGroup().Name("pg2").Namespace("ns").MinMember(2).Obj(),
 			},
-			want: fwk.Success,
+			want: framework.Success,
 		},
 	}
 
@@ -544,14 +543,14 @@ func TestPostFilter(t *testing.T) {
 	}
 
 	nodeStatusReader := framework.NewDefaultNodeToStatus()
-	nodeStatusReader.Set("node", fwk.NewStatus(fwk.Success, ""))
+	nodeStatusReader.Set("node", framework.NewStatus(framework.Success, ""))
 
 	tests := []struct {
 		name         string
 		pod          *v1.Pod
 		existingPods []*v1.Pod
 		pgs          []*v1alpha1.PodGroup
-		want         *fwk.Status
+		want         *framework.Status
 	}{
 		{
 			name: "pod does not belong to any pod group",
@@ -559,7 +558,7 @@ func TestPostFilter(t *testing.T) {
 			pgs: []*v1alpha1.PodGroup{
 				tu.MakePodGroup().Name("pg1").Namespace("ns").MinMember(2).Obj(),
 			},
-			want: fwk.NewStatus(fwk.Unschedulable, "can not find pod group"),
+			want: framework.NewStatus(framework.Unschedulable, "can not find pod group"),
 		},
 		{
 			name: "enough pods assigned, do not reject all",
@@ -570,7 +569,7 @@ func TestPostFilter(t *testing.T) {
 			pgs: []*v1alpha1.PodGroup{
 				tu.MakePodGroup().Name("pg1").Namespace("ns").MinMember(1).Obj(),
 			},
-			want: fwk.NewStatus(fwk.Unschedulable),
+			want: framework.NewStatus(framework.Unschedulable),
 		},
 		{
 			name: "pod failed at filter phase, reject all pods",
@@ -581,8 +580,8 @@ func TestPostFilter(t *testing.T) {
 			pgs: []*v1alpha1.PodGroup{
 				tu.MakePodGroup().Name("pg1").Namespace("ns").MinMember(2).Obj(),
 			},
-			want: fwk.NewStatus(
-				fwk.Unschedulable,
+			want: framework.NewStatus(
+				framework.Unschedulable,
 				"PodGroup ns/pg1 gets rejected due to Pod p is unschedulable even after PostFilter",
 			),
 		},

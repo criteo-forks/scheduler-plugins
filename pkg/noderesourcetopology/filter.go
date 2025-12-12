@@ -19,14 +19,15 @@ package noderesourcetopology
 import (
 	"context"
 
-	"github.com/go-logr/logr"
-	topologyv1alpha2 "github.com/k8stopologyawareschedwg/noderesourcetopology-api/pkg/apis/topology/v1alpha2"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/klog/v2"
-	fwk "k8s.io/kube-scheduler/framework"
 	v1qos "k8s.io/kubernetes/pkg/apis/core/v1/helper/qos"
 	kubeletconfig "k8s.io/kubernetes/pkg/kubelet/apis/config"
 	bm "k8s.io/kubernetes/pkg/kubelet/cm/topologymanager/bitmask"
+	"k8s.io/kubernetes/pkg/scheduler/framework"
+
+	"github.com/go-logr/logr"
+	topologyv1alpha2 "github.com/k8stopologyawareschedwg/noderesourcetopology-api/pkg/apis/topology/v1alpha2"
 	"sigs.k8s.io/scheduler-plugins/pkg/noderesourcetopology/logging"
 	"sigs.k8s.io/scheduler-plugins/pkg/noderesourcetopology/nodeconfig"
 	"sigs.k8s.io/scheduler-plugins/pkg/noderesourcetopology/resourcerequests"
@@ -34,9 +35,9 @@ import (
 	"sigs.k8s.io/scheduler-plugins/pkg/util"
 )
 
-type PolicyHandler func(pod *v1.Pod, zoneMap topologyv1alpha2.ZoneList) fwk.Status
+type PolicyHandler func(pod *v1.Pod, zoneMap topologyv1alpha2.ZoneList) *framework.Status
 
-func singleNUMAContainerLevelHandler(lh logr.Logger, pod *v1.Pod, info *filterInfo) *fwk.Status {
+func singleNUMAContainerLevelHandler(lh logr.Logger, pod *v1.Pod, info *filterInfo) *framework.Status {
 	// the init containers are running SERIALLY and BEFORE the normal containers.
 	// https://kubernetes.io/docs/concepts/workloads/pods/init-containers/#understanding-init-containers
 	// therefore, we don't need to accumulate their resources together
@@ -50,7 +51,7 @@ func singleNUMAContainerLevelHandler(lh logr.Logger, pod *v1.Pod, info *filterIn
 			msg := "cannot align " + cntKind + " container"
 			// we can't align init container, so definitely we can't align a pod
 			clh.V(2).Info(msg, "reason", reason)
-			return fwk.NewStatus(fwk.Unschedulable, msg)
+			return framework.NewStatus(framework.Unschedulable, msg)
 		}
 	}
 
@@ -62,7 +63,7 @@ func singleNUMAContainerLevelHandler(lh logr.Logger, pod *v1.Pod, info *filterIn
 		if !match {
 			// we can't align container, so definitely we can't align a pod
 			clh.V(2).Info("cannot align container", "reason", reason)
-			return fwk.NewStatus(fwk.Unschedulable, "cannot align container")
+			return framework.NewStatus(framework.Unschedulable, "cannot align container")
 		}
 
 		// subtract the resources requested by the container from the given NUMA.
@@ -70,7 +71,7 @@ func singleNUMAContainerLevelHandler(lh logr.Logger, pod *v1.Pod, info *filterIn
 		err := subtractResourcesFromNUMANodeList(clh, info.numaNodes, numaID, info.qos, container.Resources.Requests)
 		if err != nil {
 			// this is an internal error which should never happen
-			return fwk.NewStatus(fwk.Error, "inconsistent resource accounting", err.Error())
+			return framework.NewStatus(framework.Error, "inconsistent resource accounting", err.Error())
 		}
 		clh.V(4).Info("container aligned", "numaCell", numaID)
 	}
@@ -94,7 +95,7 @@ func resourcesAvailableInAnyNUMANodes(lh logr.Logger, info *filterInfo, resource
 	// on the NUMA node, bit should be unset
 	bitmask.Fill()
 
-	nodeResources := util.ResourceList(info.node.GetAllocatable())
+	nodeResources := util.ResourceList(info.node.Allocatable)
 
 	for resource, quantity := range resources {
 		clh := lh.WithValues("resource", resource)
@@ -159,23 +160,23 @@ func resourcesAvailableInAnyNUMANodes(lh logr.Logger, info *filterInfo, resource
 	return numaID, ret, "generic"
 }
 
-func singleNUMAPodLevelHandler(lh logr.Logger, pod *v1.Pod, info *filterInfo) *fwk.Status {
+func singleNUMAPodLevelHandler(lh logr.Logger, pod *v1.Pod, info *filterInfo) *framework.Status {
 	resources := util.GetPodEffectiveRequest(pod)
 	lh.V(6).Info("pod desired resources", stringify.ResourceListToLoggable(resources)...)
 
 	numaID, match, reason := resourcesAvailableInAnyNUMANodes(lh, info, resources)
 	if !match {
 		lh.V(2).Info("cannot align pod", "name", pod.Name, "reason", reason)
-		return fwk.NewStatus(fwk.Unschedulable, "cannot align pod")
+		return framework.NewStatus(framework.Unschedulable, "cannot align pod")
 	}
 	lh.V(4).Info("all container placed", "numaCell", numaID)
 	return nil
 }
 
 // Filter Now only single-numa-node supported
-func (tm *TopologyMatch) Filter(ctx context.Context, cycleState fwk.CycleState, pod *v1.Pod, nodeInfo fwk.NodeInfo) *fwk.Status {
+func (tm *TopologyMatch) Filter(ctx context.Context, cycleState *framework.CycleState, pod *v1.Pod, nodeInfo *framework.NodeInfo) *framework.Status {
 	if nodeInfo.Node() == nil {
-		return fwk.NewStatus(fwk.Error, "node not found")
+		return framework.NewStatus(framework.Error, "node not found")
 	}
 	qos := v1qos.GetPodQOS(pod)
 	if qos == v1.PodQOSBestEffort && !resourcerequests.IncludeNonNative(pod) {
@@ -193,7 +194,7 @@ func (tm *TopologyMatch) Filter(ctx context.Context, cycleState fwk.CycleState, 
 	lh = lh.WithValues(logging.KeyGeneration, info.Generation)
 	if !info.Fresh {
 		lh.V(2).Info("invalid topology data")
-		return fwk.NewStatus(fwk.Unschedulable, "invalid node topology data")
+		return framework.NewStatus(framework.Unschedulable, "invalid node topology data")
 	}
 	if nodeTopology == nil {
 		return nil

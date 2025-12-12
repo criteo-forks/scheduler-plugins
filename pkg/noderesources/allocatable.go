@@ -24,7 +24,6 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
-	fwk "k8s.io/kube-scheduler/framework"
 	schedulerconfig "k8s.io/kubernetes/pkg/scheduler/apis/config"
 	"k8s.io/kubernetes/pkg/scheduler/framework"
 
@@ -61,7 +60,7 @@ func validateResources(resources []schedulerconfig.ResourceSpec) error {
 }
 
 // Score invoked at the score extension point.
-func (alloc *Allocatable) Score(ctx context.Context, state fwk.CycleState, pod *v1.Pod, nodeInfo fwk.NodeInfo) (int64, *fwk.Status) {
+func (alloc *Allocatable) Score(ctx context.Context, state *framework.CycleState, pod *v1.Pod, nodeInfo *framework.NodeInfo) (int64, *framework.Status) {
 	logger := klog.FromContext(klog.NewContext(ctx, alloc.logger)).WithValues("ExtensionPoint", "Score")
 
 	// alloc.score favors nodes with least allocatable or most allocatable resources.
@@ -141,7 +140,7 @@ func score(logger klog.Logger, capacity int64, mode config.ModeType) int64 {
 }
 
 // NormalizeScore invoked after scoring all nodes.
-func (alloc *Allocatable) NormalizeScore(ctx context.Context, state fwk.CycleState, pod *v1.Pod, scores framework.NodeScoreList) *fwk.Status {
+func (alloc *Allocatable) NormalizeScore(ctx context.Context, state *framework.CycleState, pod *v1.Pod, scores framework.NodeScoreList) *framework.Status {
 	// Find highest and lowest scores.
 	var highest int64 = -math.MaxInt64
 	var lowest int64 = math.MaxInt64

@@ -14,7 +14,6 @@ import (
 	clientscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
-	fwk "k8s.io/kube-scheduler/framework"
 	"k8s.io/kubernetes/pkg/scheduler/framework"
 	"k8s.io/kubernetes/pkg/scheduler/framework/plugins/helper"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -232,7 +231,7 @@ func (sc *SySched) calcScore(syscalls sets.Set[string]) int {
 }
 
 // Score invoked at the score extension point.
-func (sc *SySched) Score(ctx context.Context, cs fwk.CycleState, pod *v1.Pod, nodeInfo fwk.NodeInfo) (int64, *fwk.Status) {
+func (sc *SySched) Score(ctx context.Context, cs *framework.CycleState, pod *v1.Pod, nodeInfo *framework.NodeInfo) (int64, *framework.Status) {
 	logger := klog.FromContext(klog.NewContext(ctx, sc.logger)).WithValues("ExtensionPoint", "Score")
 	// Read directly from API server because cached state in SnapSharedLister not always up-to-date
 	// especially during initial scheduler start.
@@ -279,7 +278,7 @@ func (sc *SySched) Score(ctx context.Context, cs fwk.CycleState, pod *v1.Pod, no
 	return int64(totalDiffs), nil
 }
 
-func (sc *SySched) NormalizeScore(ctx context.Context, state fwk.CycleState, pod *v1.Pod, scores framework.NodeScoreList) *fwk.Status {
+func (sc *SySched) NormalizeScore(ctx context.Context, state *framework.CycleState, pod *v1.Pod, scores framework.NodeScoreList) *framework.Status {
 	logger := klog.FromContext(klog.NewContext(ctx, sc.logger)).WithValues("ExtensionPoint", "NormalizeScore")
 	logger.V(10).Info("Original: ", "scores", scores, "pod", pod.Name)
 	ret := helper.DefaultNormalizeScore(framework.MaxNodeScore, true, scores)

@@ -21,11 +21,11 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/klog/v2"
-	fwk "k8s.io/kube-scheduler/framework"
+	"k8s.io/kubernetes/pkg/scheduler/framework"
 	"sigs.k8s.io/scheduler-plugins/pkg/noderesourcetopology/logging"
 )
 
-func (tm *TopologyMatch) Reserve(ctx context.Context, state fwk.CycleState, pod *corev1.Pod, nodeName string) *fwk.Status {
+func (tm *TopologyMatch) Reserve(ctx context.Context, state *framework.CycleState, pod *corev1.Pod, nodeName string) *framework.Status {
 	// the scheduler framework will add the node/name key/value pair
 	lh := klog.FromContext(klog.NewContext(ctx, tm.logger)).WithValues(logging.KeyPod, klog.KObj(pod), logging.KeyPodUID, logging.PodUID(pod), logging.KeyNode, nodeName)
 	lh.V(4).Info(logging.FlowBegin)
@@ -33,10 +33,10 @@ func (tm *TopologyMatch) Reserve(ctx context.Context, state fwk.CycleState, pod 
 
 	tm.nrtCache.ReserveNodeResources(nodeName, pod)
 	// can't fail
-	return fwk.NewStatus(fwk.Success, "")
+	return framework.NewStatus(framework.Success, "")
 }
 
-func (tm *TopologyMatch) Unreserve(ctx context.Context, state fwk.CycleState, pod *corev1.Pod, nodeName string) {
+func (tm *TopologyMatch) Unreserve(ctx context.Context, state *framework.CycleState, pod *corev1.Pod, nodeName string) {
 	// the scheduler framework will add the node/name key/value pair
 	lh := klog.FromContext(klog.NewContext(ctx, tm.logger)).WithValues(logging.KeyPod, klog.KObj(pod), logging.KeyPodUID, logging.PodUID(pod), logging.KeyNode, nodeName)
 	lh.V(4).Info(logging.FlowBegin)

@@ -24,7 +24,6 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/klog/v2"
-	fwk "k8s.io/kube-scheduler/framework"
 	v1qos "k8s.io/kubernetes/pkg/apis/core/v1/helper/qos"
 	kubeletconfig "k8s.io/kubernetes/pkg/kubelet/apis/config"
 	"k8s.io/kubernetes/pkg/scheduler/framework"
@@ -60,7 +59,7 @@ func (rw resourceToWeightMap) weight(r v1.ResourceName) int64 {
 	return w
 }
 
-func (tm *TopologyMatch) Score(ctx context.Context, state fwk.CycleState, pod *v1.Pod, nodeInfo fwk.NodeInfo) (int64, *fwk.Status) {
+func (tm *TopologyMatch) Score(ctx context.Context, state *framework.CycleState, pod *v1.Pod, nodeInfo *framework.NodeInfo) (int64, *framework.Status) {
 	nodeName := nodeInfo.Node().Name
 	// the scheduler framework will add the node/name key/value pair
 	lh := klog.FromContext(klog.NewContext(ctx, tm.logger)).WithValues(logging.KeyPod, klog.KObj(pod), logging.KeyPodUID, logging.PodUID(pod), logging.KeyNode, nodeName)
@@ -140,7 +139,7 @@ func getScoringStrategyFunction(strategy apiconfig.ScoringStrategyType) (scoreSt
 	}
 }
 
-func podScopeScore(lh logr.Logger, pod *v1.Pod, info *scoreInfo, scorerFn scoreStrategyFn, resourceToWeightMap resourceToWeightMap) (int64, *fwk.Status) {
+func podScopeScore(lh logr.Logger, pod *v1.Pod, info *scoreInfo, scorerFn scoreStrategyFn, resourceToWeightMap resourceToWeightMap) (int64, *framework.Status) {
 	// This code is in Admit implementation of pod scope
 	// https://github.com/kubernetes/kubernetes/blob/9ff3b7e744b34c099c1405d9add192adbef0b6b1/pkg/kubelet/cm/topologymanager/scope_pod.go#L52
 	// but it works with HintProviders, takes into account all possible allocations.
@@ -150,7 +149,7 @@ func podScopeScore(lh logr.Logger, pod *v1.Pod, info *scoreInfo, scorerFn scoreS
 	return finalScore, nil
 }
 
-func containerScopeScore(lh logr.Logger, pod *v1.Pod, info *scoreInfo, scorerFn scoreStrategyFn, resourceToWeightMap resourceToWeightMap) (int64, *fwk.Status) {
+func containerScopeScore(lh logr.Logger, pod *v1.Pod, info *scoreInfo, scorerFn scoreStrategyFn, resourceToWeightMap resourceToWeightMap) (int64, *framework.Status) {
 	// This code is in Admit implementation of container scope
 	// https://github.com/kubernetes/kubernetes/blob/9ff3b7e744b34c099c1405d9add192adbef0b6b1/pkg/kubelet/cm/topologymanager/scope_container.go#L52
 	containers := append(pod.Spec.InitContainers, pod.Spec.Containers...)
@@ -179,12 +178,12 @@ func (tm *TopologyMatch) scoringHandlerFromTopologyManagerConfig(conf nodeconfig
 		return nil
 	}
 	if conf.Scope == kubeletconfig.PodTopologyManagerScope {
-		return func(lh logr.Logger, pod *v1.Pod, info *scoreInfo) (int64, *fwk.Status) {
+		return func(lh logr.Logger, pod *v1.Pod, info *scoreInfo) (int64, *framework.Status) {
 			return podScopeScore(lh, pod, info, tm.scoreStrategyFunc, tm.resourceToWeightMap)
 		}
 	}
 	if conf.Scope == kubeletconfig.ContainerTopologyManagerScope {
-		return func(lh logr.Logger, pod *v1.Pod, info *scoreInfo) (int64, *fwk.Status) {
+		return func(lh logr.Logger, pod *v1.Pod, info *scoreInfo) (int64, *framework.Status) {
 			return containerScopeScore(lh, pod, info, tm.scoreStrategyFunc, tm.resourceToWeightMap)
 		}
 	}
