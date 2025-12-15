@@ -25,7 +25,6 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
-	fwk "k8s.io/kube-scheduler/framework"
 	"k8s.io/kubernetes/pkg/scheduler/framework"
 
 	"sigs.k8s.io/scheduler-plugins/apis/config"
@@ -53,11 +52,11 @@ func (nm *NodeMetadata) Name() string {
 
 // Score invoked at the score extension point.
 // Scores nodes based on metadata (label or annotation) containing numeric or timestamp values.
-func (nm *NodeMetadata) Score(ctx context.Context, state fwk.CycleState, pod *v1.Pod, nodeInfo fwk.NodeInfo) (int64, *fwk.Status) {
+func (nm *NodeMetadata) Score(ctx context.Context, state *framework.CycleState, pod *v1.Pod, nodeInfo *framework.NodeInfo) (int64, *framework.Status) {
 	logger := klog.FromContext(klog.NewContext(ctx, nm.logger)).WithValues("ExtensionPoint", "Score")
 	node := nodeInfo.Node()
 	if node == nil {
-		return 0, fwk.NewStatus(fwk.Error, fmt.Sprintf("node %q not found", nodeInfo.Node().Name))
+		return 0, framework.NewStatus(framework.Error, fmt.Sprintf("node %q not found", nodeInfo.Node().Name))
 	}
 
 	score, err := nm.calculateScore(node)
@@ -146,7 +145,7 @@ func (nm *NodeMetadata) parseTimestampValue(value string) (int64, error) {
 }
 
 // NormalizeScore normalizes the scores across all nodes to fit within the framework's score range.
-func (nm *NodeMetadata) NormalizeScore(ctx context.Context, state fwk.CycleState, pod *v1.Pod, scores framework.NodeScoreList) *fwk.Status {
+func (nm *NodeMetadata) NormalizeScore(ctx context.Context, state *framework.CycleState, pod *v1.Pod, scores framework.NodeScoreList) *framework.Status {
 	logger := klog.FromContext(klog.NewContext(ctx, nm.logger)).WithValues("ExtensionPoint", "NormalizeScore")
 	logger.V(10).Info("Original scores: ", "scores", scores, "pod", pod.Name)
 	// Find min and max scores
