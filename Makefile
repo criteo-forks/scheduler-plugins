@@ -77,7 +77,7 @@ local-image: RELEASE_VERSION="v1.33.5"
 local-image: VERSION=v0.0.$(shell date +%Y%m%d)
 # TODO: put actual registry here
 local-image: REGISTRY="europe-west1-docker.pkg.dev/techops-iow/techops-docker-local/scheduler-plugins"
-local-image: EXTRA_ARGS="--load"
+local-image: EXTRA_ARGS="--push"
 local-image: clean build-images
 
 .PHONY: release-images
