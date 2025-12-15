@@ -68,13 +68,16 @@ build-images:
 	GO_BASE_IMAGE=$(GO_BASE_IMAGE) \
 	DISTROLESS_BASE_IMAGE=$(DISTROLESS_BASE_IMAGE) \
 	DOCKER_BUILDX_CMD=$(DOCKER_BUILDX_CMD) \
+	VERSION=$(VERSION) \
 	EXTRA_ARGS=$(EXTRA_ARGS) hack/build-images.sh
 
 .PHONY: local-image
-local-image: PLATFORMS="linux/$$(uname -m)"
-local-image: RELEASE_VERSION="v0.0.0"
-local-image: REGISTRY="localhost:5000/scheduler-plugins"
-local-image: EXTRA_ARGS="--load"
+local-image: PLATFORMS="linux/amd64"
+local-image: RELEASE_VERSION="v1.33.5"
+local-image: VERSION=v0.0.$(shell date +%Y%m%d)
+# TODO: put actual registry here
+local-image: REGISTRY="europe-west1-docker.pkg.dev/techops-iow/techops-docker-local/scheduler-plugins"
+local-image: EXTRA_ARGS="--push"
 local-image: clean build-images
 
 .PHONY: release-images
