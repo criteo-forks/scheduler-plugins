@@ -76,12 +76,13 @@ local-image: PLATFORMS="linux/amd64"
 local-image: RELEASE_VERSION="v1.33.5"
 local-image: VERSION=v0.0.$(shell date +%Y%m%d)
 # TODO: put actual registry here
-local-image: REGISTRY="europe-west1-docker.pkg.dev/techops-iow/techops-docker-local/scheduler-plugins"
-local-image: EXTRA_ARGS="--push"
+local-image: REGISTRY="localhost:5001/scheduler-plugins"
+local-image: EXTRA_ARGS="--load"
 local-image: clean build-images
 
 .PHONY: release-images
 push-images: EXTRA_ARGS="--push"
+local-image: VERSION=v0.0.$(shell date +%Y%m%d)
 push-images: build-images
 
 .PHONY: update-gomod
