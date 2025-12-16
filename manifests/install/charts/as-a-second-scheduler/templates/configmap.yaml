@@ -16,15 +16,7 @@ data:
     # Compose all plugins in one profile
     - schedulerName: {{ .Values.scheduler.name }}
       plugins:
-        multiPoint:
-          enabled:
-          {{- range $.Values.plugins.enabled }}
-          - name: {{ title . }}
-          {{- end }}
-          disabled:
-          {{- range $.Values.plugins.disabled }}
-          - name: {{ title . }}
-          {{- end }}
+        {{ omit $.Values.plugins "enabled" | toYaml | nindent 8 }}
       {{- if $.Values.pluginConfig }}
       pluginConfig: {{ toYaml $.Values.pluginConfig | nindent 6 }}
       {{- end }}

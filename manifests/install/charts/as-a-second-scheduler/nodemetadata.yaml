@@ -4,7 +4,7 @@
 
 scheduler:
   name: scheduler-plugins-scheduler
-  image: registry.k8s.io/scheduler-plugins/kube-scheduler:v0.33.5
+  image: ghcr.io/criteo-forks/scheduler-plugins/kube-scheduler:v20251215-v0.33.5-criteo1
   command:
   - /bin/kube-scheduler
   replicaCount: 1
@@ -18,7 +18,7 @@ scheduler:
 controller:
   enabled: false
   name: scheduler-plugins-controller
-  image: registry.k8s.io/scheduler-plugins/controller:v0.33.5
+  image: ghcr.io/criteo-forks/scheduler-plugins/controller:v20251215-v0.33.5-criteo1
   replicaCount: 1
   leaderElect: false
   priorityClassName: ""
@@ -31,23 +31,27 @@ controller:
 # as they need extra RBAC privileges on metrics.k8s.io.
 
 plugins:
+  enabled: true
   multiPoint:
-    enabled: ["Coscheduling","CapacityScheduling","NodeResourceTopologyMatch","NodeResourcesAllocatable"]
-    disabled: ["PrioritySort"] # only in-tree plugins need to be defined here
+    enabled: []
+    disabled: []
+  score:
+    enabled:
+    - name: NodeMetadata
+      weight: 5  # Adjust weight to balance with other scoring plugins
+
 
 # Customize the enabled plugins' config.
 # Refer to the "pluginConfig" section of manifests/<plugin>/scheduler-config.yaml.
 # For example, for Coscheduling plugin, you want to customize the permit waiting timeout to 10 seconds:
 pluginConfig:
-- name: Coscheduling
+- name: NodeMetadata
+
   args:
-    permitWaitingTimeSeconds: 10 # default is 60
-# Or, customize the other plugins
-# - name: NodeResourceTopologyMatch
-#   args:
-#     scoringStrategy:
-#       type: MostAllocated # default is LeastAllocated
-#- name: SySched
-#  args:
-#    defaultProfileNamespace: "default"
-#    defaultProfileName: "full-seccomp"
+    kind: NodeMetadataArgs
+    apiVersion: kubescheduler.config.k8s.io/v1
+    metadataKey: "node.example.com/last-maintenance"
+    metadataSource: "Annotation"
+    metadataType: "Timestamp"
+    scoringStrategy: "Newest"
+    timestampFormat: "2006-01-02T15:04:05Z07:00"

@@ -59,6 +59,12 @@ rules:
 - apiGroups: ["storage.k8s.io"]
   resources: ["csinodes", "storageclasses" , "csidrivers" , "csistoragecapacities", "volumeattachments"]
   verbs: ["get", "list", "watch"]
+- apiGroups: ["resource.k8s.io"]
+  resources: ["resourceclaims", "resourceclaimtemplates", "resourceclasses", "deviceclasses", "resourceslices"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["resource.k8s.io"]
+  resources: ["resourceclaims/status"]
+  verbs: ["patch", "update"]
 - apiGroups: ["topology.node.k8s.io"]
   resources: ["noderesourcetopologies"]
   verbs: ["get", "list", "watch"]
@@ -66,7 +72,7 @@ rules:
   resources: ["podgroups", "elasticquotas", "podgroups/status", "elasticquotas/status"]
   verbs: ["get", "list", "watch", "create", "delete", "update", "patch"]
 {{- /* resources need to be updated with the scheduler plugins used */}}
-{{- if has "NetworkOverhead" .Values.plugins.enabled }}
+{{- if has "NetworkOverhead" .Values.plugins.multiPoint.enabled }}
 - apiGroups: [ "appgroup.diktyo.x-k8s.io" ]
   resources: [ "appgroups" ]
   verbs: [ "get", "list", "watch", "create", "delete", "update", "patch" ]
@@ -74,12 +80,12 @@ rules:
   resources: [ "networktopologies" ]
   verbs: [ "get", "list", "watch", "create", "delete", "update", "patch" ]
 {{- end }}
-{{- if has "PreemptionToleration" .Values.plugins.enabled }}
+{{- if has "PreemptionToleration" .Values.plugins.multiPoint.enabled }}
 - apiGroups: ["scheduling.k8s.io"]
   resources: ["priorityclasses"]
   verbs: ["get", "list", "watch"]
 {{- end }}
-{{- if has "SySched" .Values.plugins.enabled }}
+{{- if has "SySched" .Values.plugins.multiPoint.enabled }}
 - apiGroups: ["security-profiles-operator.x-k8s.io"]
   resources: ["seccompprofiles", "profilebindings"]
   verbs: ["get", "list", "watch", "create", "delete", "update", "patch"]
@@ -122,7 +128,7 @@ rules:
   resources: ["podgroups", "elasticquotas", "podgroups/status", "elasticquotas/status"]
   verbs: ["get", "list", "watch", "create", "delete", "update", "patch"]
 {{- /* resources need to be updated with the scheduler plugins used */}}
-{{- if has "SySched" .Values.plugins.enabled }}
+{{- if has "SySched" .Values.plugins.multiPoint.enabled }}
 - apiGroups: ["security-profiles-operator.x-k8s.io"]
   resources: ["seccompprofiles", "profilebindings"]
   verbs: ["get", "list", "watch", "create", "delete", "update", "patch"]
