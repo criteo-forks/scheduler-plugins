@@ -37,7 +37,6 @@ plugins:
     - name: NodeMetadata
       weight: 5  # Adjust weight to balance with other scoring plugins
 
-
 # Customize the enabled plugins' config.
 # Refer to the "pluginConfig" section of manifests/<plugin>/scheduler-config.yaml.
 # For example, for Coscheduling plugin, you want to customize the permit waiting timeout to 10 seconds:
