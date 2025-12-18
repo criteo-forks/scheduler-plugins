@@ -83,6 +83,7 @@ local-image: clean build-images
 .PHONY: release-images
 push-images: EXTRA_ARGS="--push"
 local-image: VERSION=v0.0.$(shell date +%Y%m%d)
+local-image: PLATFORMS="linux/amd64,linux/arm64"
 push-images: build-images
 
 .PHONY: update-gomod
