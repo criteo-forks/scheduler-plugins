@@ -40,7 +40,8 @@ EXTRA_ARGS=""
 # The RELEASE_VERSION variable can have one of two formats:
 # v20201009-v0.18.800-46-g939c1c0 - automated build for a commit(not a tag) and also a local build
 # v20200521-v0.18.800             - automated build for a tag
-VERSION?=$(v0.0.$(shell date +%Y%m%d))
+VERSION=$(shell echo $(RELEASE_VERSION) | awk -F - '{print $$2}')
+VERSION:=$(or $(VERSION),v0.0.$(shell date +%Y%m%d))
 
 .PHONY: all
 all: build
@@ -81,8 +82,8 @@ local-image: clean build-images
 
 .PHONY: release-images
 push-images: EXTRA_ARGS="--push"
-local-image: VERSION=v0.0.$(shell date +%Y%m%d)
-local-image: PLATFORMS="linux/amd64,linux/arm64"
+push-images: VERSION=v0.0.$(shell date +%Y%m%d)
+push-images: PLATFORMS="linux/amd64,linux/arm64"
 push-images: build-images
 
 .PHONY: update-gomod
