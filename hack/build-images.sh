@@ -55,6 +55,7 @@ ${IMAGE_BUILD_CMD} build \
   --build-arg GO_BASE_IMAGE=${GO_BASE_IMAGE} \
   --build-arg DISTROLESS_BASE_IMAGE=${DISTROLESS_BASE_IMAGE} \
   --build-arg CGO_ENABLED=0 \
+  --build-arg VERSION=${VERSION} \
   ${EXTRA_ARGS:-}  ${TAG_FLAG:-} ${REGISTRY}/${IMAGE} .
 
 ${IMAGE_BUILD_CMD} build \
